@@ -21,7 +21,7 @@ jobs:
             profile: minimal
             override: true
       - name: Install dependencies
-        run: cargo fetch
+        run: cargo fetch --manifest-path ./tage/Cargo.toml
 
 #      - name: Build project
 #        run: cargo build --verbose
