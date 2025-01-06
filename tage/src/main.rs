@@ -8,7 +8,7 @@ use nom::{bytes::complete::tag, IResult};
 #[derive(Debug, PartialEq)]
 struct Query {
     select: Option<SelectQuery>,
-    insert_query: Option<InsertQuery>,
+    insert: Option<InsertQuery>,
 }
 #[derive(Debug, PartialEq)]
 struct SelectQuery {
@@ -55,7 +55,7 @@ fn parse_select(input: &str) -> IResult<&str, Query> {
                 table: table.to_string(),
                 columns: columns.iter().map(ToString::to_string).collect(),
             }),
-            insert_query: None,
+            insert: None,
         },
     ))
 }
@@ -82,7 +82,7 @@ fn parse_insert(input: &str) -> IResult<&str, Query> {
         input,
         Query {
             select: None,
-            insert_query: Some(InsertQuery {
+            insert: Some(InsertQuery {
                 table: table.to_string(),
                 columns: columns.iter().map(ToString::to_string).collect(),
                 values,
@@ -143,7 +143,7 @@ mod tests {
         let (left, output) = parse("insert into table1 (col1, col2) values (1, 'value');").unwrap();
 
         assert_eq!(left, "");
-        let query = output.insert_query.unwrap();
+        let query = output.insert.unwrap();
         assert_eq!(query.table, "table1");
         assert_eq!(query.columns, vec!["col1", "col2"]);
         assert_eq!(
@@ -158,6 +158,87 @@ mod tests {
                     s_value: Some("value".to_string())
                 }
             ]
+        );
+    }
+
+    #[test]
+    fn select_multiple_columns() {
+        let (remainder, select_query) =
+            parse("select col1, col2, col3, col4, col5 from table1;").unwrap();
+        assert_eq!(remainder, "");
+        let query = select_query.select.unwrap();
+        assert_eq!(query.table, "table1");
+        assert_eq!(query.columns, vec!["col1", "col2", "col3", "col4", "col5"]);
+    }
+
+    #[test]
+    fn insert_multiple_columns() {
+        let (remainder, insert_query) = parse("insert into table1 (col1, col2, col3, col4, col5) values (1, 'value', 2, 'value2', 3);").unwrap();
+        let query = insert_query.insert.unwrap();
+
+        assert_eq!(remainder, "");
+        assert_eq!(query.table, "table1");
+        assert_eq!(query.columns, vec!["col1", "col2", "col3", "col4", "col5"]);
+        assert_eq!(
+            query.values,
+            vec![
+                Value {
+                    i_value: Some(1),
+                    s_value: None,
+                },
+                Value {
+                    i_value: None,
+                    s_value: Some("value".to_string()),
+                },
+                Value {
+                    i_value: Some(2),
+                    s_value: None,
+                },
+                Value {
+                    i_value: None,
+                    s_value: Some("value2".to_string()),
+                },
+                Value {
+                    i_value: Some(3),
+                    s_value: None,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn select_single_column() {
+        let (remainder, query) = parse("select col1 from table1;").unwrap();
+        assert_eq!(remainder, "");
+        assert_eq!(
+            query,
+            Query {
+                select: Some(SelectQuery {
+                    table: "table1".to_string(),
+                    columns: vec!["col1".to_string()]
+                }),
+                insert: None
+            }
+        );
+    }
+
+    #[test]
+    fn insert_single_column() {
+        let (remainder, insert_query) = parse("insert into table1 (col1) values (1);").unwrap();
+        assert_eq!(remainder, "");
+        assert_eq!(
+            insert_query,
+            Query {
+                select: None,
+                insert: Some(InsertQuery {
+                    table: "table1".to_string(),
+                    columns: vec!["col1".to_string()],
+                    values: vec![Value {
+                        i_value: Some(1),
+                        s_value: None,
+                    }],
+                }),
+            }
         );
     }
 }
