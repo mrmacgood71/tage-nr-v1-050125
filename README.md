@@ -38,3 +38,10 @@ High level design of the database and development plan for this database.:
 - ACID
 ## Configuration
 - Configuration file for the database
+
+
+
+### Inspired by
++ cmu database group (YT, Andy Pavlo)- inspiration what can I to solve
++ Tony saro
++ apakhomov
